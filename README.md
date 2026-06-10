@@ -1,6 +1,9 @@
-# Blueprint Subsea Oculus ROS 2 Driver
+# Blueprint Subsea Oculus ROS2 Driver
 
-ROS 2 driver for Blueprint Subsea Oculus forward looking sonars, initially aimed at the Oculus M750d.
+ROS2 driver for Blueprint Subsea Oculus forward looking sonars, tested only on
+ROS2 humble and the Oculus M750d, but should work with any of the Oculus range
+of sonars.
+
 
 This package publishes:
 
@@ -20,13 +23,14 @@ colcon build --packages-select bpsubsea_oculus_ros2_driver
 ```
 
 ## Run
+By defualt, `sonar_ip` is set to auto, so the driver will discover any connected
+Oculus sonar automatically. 
 
 ```bash
-source install/setup.bash
 ros2 launch bpsubsea_oculus_ros2_driver oculus_driver.launch.py
 ```
 
-With a fixed address:
+With a fixed ip address:
 
 ```bash
 ros2 launch bpsubsea_oculus_ros2_driver oculus_driver.launch.py sonar_ip:=192.168.2.10
@@ -39,6 +43,17 @@ ros2 launch bpsubsea_oculus_ros2_driver oculus_driver.launch.py start_fan_image:
 ```
 
 ## Common Parameters
+You can change the configuration on the fly for both the acquisition driver and
+for the fan image renderer through the command line via, for example:
+```bash
+ros2 param set /oculus_driver range 20.0
+ros2 param set /oculus_driver mode 1
+ros2 param set /oculus_fan_image palette fire
+ros2 param set /oculus_fan_image flip_x true
+```
+
+Using `ros2 param list /oculus_driver` and `ros2 param list /oculus_fan_image` you
+can get a list of the parameters available for tuning, whose description is the following:
 
 ### Acquisition Driver
 
