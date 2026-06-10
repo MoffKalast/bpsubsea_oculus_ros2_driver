@@ -2,7 +2,8 @@
 
 ROS2 driver for Blueprint Subsea Oculus forward looking sonars, tested only on
 ROS2 humble and the Oculus M750d, but should work with any of the Oculus range
-of sonars.
+of sonars. This driver is the successor of [this very old repo](https://github.com/aldoteran/oculus_m750d),
+but unfortunately it has an incompatible API since we now based it on BPSubsea's own Oculus SDK.
 
 
 This package publishes:
