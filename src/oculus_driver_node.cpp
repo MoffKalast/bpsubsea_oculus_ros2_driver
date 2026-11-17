@@ -17,6 +17,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <mutex>
 #include <string>
@@ -28,6 +29,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/image_encodings.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/imu.hpp"
+#include "std_msgs/msg/header.hpp"
 
 namespace
 {
@@ -102,6 +105,7 @@ public:
       "/oculus/ping", rclcpp::SensorDataQoS());
     image_pub_ = create_publisher<sensor_msgs::msg::Image>(
       "/oculus/image", rclcpp::SensorDataQoS());
+    imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("/oculus/imu", rclcpp::SensorDataQoS());
 
     running_.store(true);
     status_thread_ = std::thread(&OculusDriverNode::status_loop, this);
@@ -501,7 +505,8 @@ private:
       ping.nBeams,
       ping.imageOffset,
       ping.imageSize,
-      sizeof(protocol::OculusSimplePingResult));
+      sizeof(protocol::OculusSimplePingResult),
+      false);
   }
 
   void publish_ping_v2(
@@ -528,7 +533,8 @@ private:
       ping.nBeams,
       ping.imageOffset,
       ping.imageSize,
-      sizeof(protocol::OculusSimplePingResult2));
+      sizeof(protocol::OculusSimplePingResult2),
+      true);
   }
 
   void publish_ping_common(
@@ -551,7 +557,8 @@ private:
     uint16_t n_beams,
     uint32_t image_offset,
     uint32_t image_size,
-    size_t bearing_offset)
+    size_t bearing_offset,
+    bool has_attitude)
   {
     const size_t bearing_size = static_cast<size_t>(n_beams) * sizeof(int16_t);
     const size_t image_end = static_cast<size_t>(image_offset) + image_size;
@@ -602,6 +609,35 @@ private:
     image_msg.step = static_cast<sensor_msgs::msg::Image::_step_type>(n_beams * bytes_per_sample);
     image_msg.data.assign(image_begin, image_finish);
     image_pub_->publish(image_msg);
+
+    if (has_attitude) {
+      publish_imu(ping_msg.header, heading, pitch, roll);
+    }
+  }
+
+  void publish_imu(const std_msgs::msg::Header & header, double heading, double pitch, double roll)
+  {
+    const double deg = M_PI / 180.0;
+    const double half_roll = 0.5 * roll * deg;
+    const double half_pitch = 0.5 * pitch * deg;
+    const double half_yaw = 0.5 * (90.0 - heading) * deg;
+
+    const double cr = std::cos(half_roll);
+    const double sr = std::sin(half_roll);
+    const double cp = std::cos(half_pitch);
+    const double sp = std::sin(half_pitch);
+    const double cy = std::cos(half_yaw);
+    const double sy = std::sin(half_yaw);
+
+    sensor_msgs::msg::Imu imu_msg;
+    imu_msg.header = header;
+    imu_msg.orientation.w = cr * cp * cy + sr * sp * sy;
+    imu_msg.orientation.x = sr * cp * cy - cr * sp * sy;
+    imu_msg.orientation.y = cr * sp * cy + sr * cp * sy;
+    imu_msg.orientation.z = cr * cp * sy - sr * sp * cy;
+    imu_msg.angular_velocity_covariance[0] = -1.0;
+    imu_msg.linear_acceleration_covariance[0] = -1.0;
+    imu_pub_->publish(imu_msg);
   }
 
   std::atomic_bool running_ {false};
@@ -615,6 +651,7 @@ private:
   rclcpp::Publisher<bpsubsea_oculus_ros2_driver::msg::Status>::SharedPtr status_pub_;
   rclcpp::Publisher<bpsubsea_oculus_ros2_driver::msg::Ping>::SharedPtr ping_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
 };
 
 int main(int argc, char ** argv)

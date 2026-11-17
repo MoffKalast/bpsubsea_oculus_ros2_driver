@@ -8,6 +8,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     sonar_ip = LaunchConfiguration("sonar_ip")
     frame_id = LaunchConfiguration("frame_id")
+    fire_message_version = LaunchConfiguration("fire_message_version")
     start_fan_image = LaunchConfiguration("start_fan_image")
     fan_output_width = LaunchConfiguration("fan_output_width")
     fan_output_height = LaunchConfiguration("fan_output_height")
@@ -24,6 +25,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("sonar_ip", default_value="auto"),
         DeclareLaunchArgument("frame_id", default_value="oculus"),
+        DeclareLaunchArgument("fire_message_version", default_value="2"),
         DeclareLaunchArgument("start_fan_image", default_value="true"),
         DeclareLaunchArgument("fan_output_width", default_value="800"),
         DeclareLaunchArgument("fan_output_height", default_value="800"),
@@ -44,6 +46,7 @@ def generate_launch_description():
             parameters=[{
                 "sonar_ip": sonar_ip,
                 "frame_id": frame_id,
+                "fire_message_version": fire_message_version,
             }],
         ),
         Node(

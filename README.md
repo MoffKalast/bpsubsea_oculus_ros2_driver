@@ -11,6 +11,7 @@ This package publishes:
 - `/oculus/status` (`bpsubsea_oculus_ros2_driver/msg/Status`)
 - `/oculus/ping` (`bpsubsea_oculus_ros2_driver/msg/Ping`)
 - `/oculus/image` (`sensor_msgs/msg/Image`)
+- `/oculus/imu` (`sensor_msgs/msg/Imu`, only with `fire_message_version` set to `2`)
 - `/oculus/fan_image` (`sensor_msgs/msg/Image`) for human visualization
 
 The driver listens for Oculus status broadcasts on UDP port `52102`. With the default
@@ -66,7 +67,7 @@ can get a list of the parameters available for tuning, whose description is the 
 - `speed_of_sound`: fixed speed of sound in m/s. Use `0.0` to let the sonar calculate it.
 - `salinity`: salinity in ppt, used by the sonar when `speed_of_sound` is `0.0`.
 - `gain_assist`: enables gain assist in the simple fire command.
-- `fire_message_version`: `1` (default) sends the original simple fire message, `2` sends the version 2 message, which makes the sonar reply with version 2 pings that include heading, pitch and roll.
+- `fire_message_version`: `1` (default) sends the original simple fire message, `2` sends the version 2 message, which makes the sonar reply with version 2 pings that include heading, pitch and roll, published as `sensor_msgs/Imu` on `/oculus/imu`.
 - `enable_512_beams`: requests 512 beams, matching the SDK viewer behaviour.
 - `gamma_correction`: simple fire gamma correction byte.
 - `network_speed_limit`: network speed limit byte. `255` disables the limiter, matching the SDK viewer behaviour for gigabit links.
