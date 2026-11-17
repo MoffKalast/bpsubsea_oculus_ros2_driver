@@ -66,6 +66,7 @@ can get a list of the parameters available for tuning, whose description is the 
 - `speed_of_sound`: fixed speed of sound in m/s. Use `0.0` to let the sonar calculate it.
 - `salinity`: salinity in ppt, used by the sonar when `speed_of_sound` is `0.0`.
 - `gain_assist`: enables gain assist in the simple fire command.
+- `fire_message_version`: `1` (default) sends the original simple fire message, `2` sends the version 2 message, which makes the sonar reply with version 2 pings that include heading, pitch and roll.
 - `enable_512_beams`: requests 512 beams, matching the SDK viewer behaviour.
 - `gamma_correction`: simple fire gamma correction byte.
 - `network_speed_limit`: network speed limit byte. `255` disables the limiter, matching the SDK viewer behaviour for gigabit links.

@@ -94,6 +94,7 @@ public:
     declare_parameter<int>("network_speed_limit", 255);
     declare_parameter<bool>("enable_512_beams", true);
     declare_parameter<int>("reconnect_delay_ms", 1000);
+    declare_parameter<int>("fire_message_version", 1);
 
     status_pub_ = create_publisher<bpsubsea_oculus_ros2_driver::msg::Status>(
       "/oculus/status", rclcpp::QoS(10));
@@ -157,15 +158,44 @@ private:
     return fire;
   }
 
-  bool send_fire(int socket_fd)
+  protocol::OculusSimpleFireMessage2 build_fire_message2()
   {
     const auto fire = build_fire_message();
-    const auto * data = reinterpret_cast<const uint8_t *>(&fire);
+
+    protocol::OculusSimpleFireMessage2 fire2 {};
+    fire2.head = fire.head;
+    fire2.head.msgVersion = 2;
+    fire2.head.payloadSize = sizeof(fire2) - sizeof(fire2.head);
+    fire2.masterMode = fire.masterMode;
+    fire2.pingRate = fire.pingRate;
+    fire2.networkSpeed = fire.networkSpeed;
+    fire2.gammaCorrection = fire.gammaCorrection;
+    fire2.flags = fire.flags;
+    fire2.range = fire.range;
+    fire2.gainPercent = fire.gainPercent;
+    fire2.speedOfSound = fire.speedOfSound;
+    fire2.salinity = fire.salinity;
+
+    return fire2;
+  }
+
+  bool send_fire(int socket_fd)
+  {
+    if (get_parameter("fire_message_version").as_int() == 2) {
+      const auto fire = build_fire_message2();
+      return send_bytes(socket_fd, reinterpret_cast<const uint8_t *>(&fire), sizeof(fire));
+    }
+
+    const auto fire = build_fire_message();
+    return send_bytes(socket_fd, reinterpret_cast<const uint8_t *>(&fire), sizeof(fire));
+  }
+
+  bool send_bytes(int socket_fd, const uint8_t * data, size_t size)
+  {
     size_t sent_total = 0;
 
-    while (sent_total < sizeof(fire) && running_.load()) {
-      const ssize_t sent = ::send(
-        socket_fd, data + sent_total, sizeof(fire) - sent_total, MSG_NOSIGNAL);
+    while (sent_total < size && running_.load()) {
+      const ssize_t sent = ::send(socket_fd, data + sent_total, size - sent_total, MSG_NOSIGNAL);
       if (sent <= 0) {
         return false;
       }
@@ -427,6 +457,11 @@ private:
       return;
     }
 
+    if (header.msgVersion != last_ping_version_) {
+      RCLCPP_INFO(get_logger(), "Receiving ping messages of version %u", header.msgVersion);
+      last_ping_version_ = header.msgVersion;
+    }
+
     if (header.msgVersion == 2) {
       protocol::OculusSimplePingResult2 ping {};
       if (!copy_struct(packet, ping)) {
@@ -572,6 +607,7 @@ private:
   std::atomic_bool running_ {false};
   std::thread status_thread_;
   std::thread tcp_thread_;
+  uint16_t last_ping_version_ {0xFFFF};
 
   std::mutex auto_ip_mutex_;
   std::string latest_status_source_ip_;
